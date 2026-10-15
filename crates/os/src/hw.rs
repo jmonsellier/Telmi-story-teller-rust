@@ -133,24 +133,31 @@ fn set_volume_raw(value: i32) {
     };
     let fd = file.as_raw_fd();
     let mut args: [i32; 2] = [0, 0];
-    let mut request: [u64; 2] = [std::mem::size_of_val(&args) as u64, args.as_mut_ptr() as usize as u64];
-    // SAFETY: structure attendue par le pilote mi_ao (taille, pointeur), comme dans Telmi.
+    // Le pilote lit et écrit `args` à travers ce pointeur : on n'y accède plus autrement.
+    let arg = args.as_mut_ptr();
+    let mut request: [u64; 2] = [std::mem::size_of_val(&args) as u64, arg as usize as u64];
+    let request = request.as_mut_ptr();
+    // SAFETY: structure attendue par le pilote mi_ao (taille, pointeur), comme dans
+    // Telmi ; `args` vit jusqu'à la fin de la fonction.
     unsafe {
-        libc::ioctl(fd, MI_AO_GETVOLUME, request.as_mut_ptr());
-        let previous = args[1];
+        libc::ioctl(fd, MI_AO_GETVOLUME, request);
+        let previous = arg.add(1).read_volatile();
         let value = (value + MIN_RAW).clamp(MIN_RAW, MAX_RAW);
         if value == previous {
             return;
         }
-        args[1] = value;
-        request[1] = args.as_mut_ptr() as usize as u64;
-        libc::ioctl(fd, MI_AO_SETVOLUME, request.as_mut_ptr());
-        if previous <= MIN_RAW && value > MIN_RAW {
-            args[1] = 0;
-            libc::ioctl(fd, MI_AO_SETMUTE, request.as_mut_ptr());
+        arg.add(1).write_volatile(value);
+        libc::ioctl(fd, MI_AO_SETVOLUME, request);
+        let mute = if previous <= MIN_RAW && value > MIN_RAW {
+            Some(0)
         } else if previous > MIN_RAW && value <= MIN_RAW {
-            args[1] = 1;
-            libc::ioctl(fd, MI_AO_SETMUTE, request.as_mut_ptr());
+            Some(1)
+        } else {
+            None
+        };
+        if let Some(mute) = mute {
+            arg.add(1).write_volatile(mute);
+            libc::ioctl(fd, MI_AO_SETMUTE, request);
         }
     }
 }
