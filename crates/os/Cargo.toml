@@ -1,0 +1,18 @@
+[package]
+name = "telmi-os"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Conteuse d'histoires pour Miyoo Mini Plus, remplaçant robuste de storyTeller (Telmi OS)"
+
+[[bin]]
+name = "storyTeller"
+path = "src/main.rs"
+
+[dependencies]
+telmi-story = { path = "../story" }
+serde_json.workspace = true
+libc = "0.2"
+png = "0.17"
+fontdue = "0.9"
+symphonia = { version = "0.5", default-features = false, features = ["mp3"] }
