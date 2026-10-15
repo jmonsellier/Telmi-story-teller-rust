@@ -24,16 +24,8 @@ cp -X "$BIN" "$UPD/bin/storyTeller.new"
 mv "$UPD/bin/storyTeller.new" "$UPD/bin/storyTeller"
 
 # Remplace la fonction launch_storyteller de runtime.sh (toujours depuis l'original).
-python3 -I - "$UPD/runtime.sh.telmi" "$HERE/launch_storyteller.sh" "$UPD/runtime.sh.new" <<'PY'
-import re, sys
-original, function, target = sys.argv[1:4]
-text = open(original, newline="").read()
-new = open(function).read().rstrip("\n")
-pattern = re.compile(r"^launch_storyteller\(\) \{\n.*?^\}", re.S | re.M)
-if len(pattern.findall(text)) != 1:
-    sys.exit("launch_storyteller introuvable dans runtime.sh : installation annulée")
-open(target, "w", newline="\n").write(pattern.sub(lambda _: new, text))
-PY
+python3 -I "$HERE/telmi_release.py" patch-runtime \
+    "$UPD/runtime.sh.telmi" "$HERE/launch_storyteller.sh" "$UPD/runtime.sh.new"
 mv "$UPD/runtime.sh.new" "$UPD/runtime.sh"
 rm -f "$UPD/bin/._storyTeller" "$UPD/._runtime.sh"
 sync

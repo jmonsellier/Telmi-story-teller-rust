@@ -19,12 +19,46 @@ dans les menus. Causes trouvées dans son code :
 | plantage = écran figé jusqu'à épuisement de la batterie | reprise sur panique, relance par `runtime.sh`, repli sur l'original |
 | divisions par zéro, index hors limites, `strcpy` sans borne sur des données de la carte | données vérifiées, histoire illisible = retour au titre |
 
+## Installation
+
+Testé sur **Miyoo Mini Plus**, à partir de Telmi OS 1.10.4. Miyoo Mini et Miyoo Mini Flip : non
+testés.
+
+### Telmi OS est déjà sur la carte (cas le plus courant)
+
+Les histoires, la musique, les réglages et les reprises en cours sont conservés.
+
+1. Télécharge `TelmiOS_v1.10.4-rust_v…-update.zip` dans la
+   [dernière version](https://github.com/jmonsellier/Telmi-story-teller-rust/releases/latest).
+2. Décompresse l'archive sur l'ordinateur.
+3. Copie le dossier `.tmp_update` qu'elle contient à la racine de la carte SD, en acceptant de
+   remplacer l'existant.
+   - **Mac** : ce dossier est caché. Dans le Finder, `Cmd` + `Maj` + `.` l'affiche.
+   - **Windows** : copier, coller à la racine de la carte, puis « Remplacer les fichiers ».
+4. Éjecte la carte, remets-la dans la console et allume-la.
+
+### Nouvelle carte SD
+
+Installe d'abord Telmi OS avec [Telmi Sync](https://telmi.fr/#download), puis suis les étapes
+ci-dessus. L'archive `TelmiOS_v1.10.4-rust_v….zip` (sans `-update`) est l'équivalent de l'archive
+complète de Telmi OS, pour une installation manuelle sur une carte vide.
+
+### Bon à savoir
+
+- Si la nouvelle conteuse plante trois fois de suite, la console relance d'elle-même celle de
+  Telmi OS, gardée sur la carte (`.tmp_update/bin/storyTeller.telmi`).
+- Une mise à jour de Telmi OS proposée par Telmi Sync remplace cette version : réapplique ensuite
+  l'archive `-update`.
+- Pour revenir à Telmi OS d'origine, applique de la même façon l'archive `-update` officielle de
+  [Telmi OS](https://github.com/DantSu/Telmi-story-teller/releases).
+- En cas de souci, le journal est sur la carte : `.tmp_update/logs/storyTeller-rs.log`.
+
 ## Organisation
 
 - `crates/story` : moteur d'histoires sans dépendance matérielle (lecture de `nodes.json`,
   navigation, inventaire, sauvegardes compatibles Telmi).
 - `crates/os` : binaire `storyTeller` (SDL2 de Telmi, audio, images, texte, boutons, matériel, applications).
-- `scripts/` : compilation croisée et installation sur la carte SD.
+- `scripts/` : compilation croisée, installation sur la carte SD et archives de publication.
 
 ## Développer
 
@@ -54,7 +88,7 @@ SDL_AUDIODRIVER=dummy TELMI_ROOT=~/sd TELMI_SNAPSHOTS=/tmp/snaps \
 TELMI_SCRIPT="wait:1000,A,wait:1500,Right,Menu,A,wait:3000,Quit" ./target/release/storyTeller
 ```
 
-## Installer sur la console
+## Installer depuis les sources
 
 Prérequis : `rustup target add armv7-unknown-linux-gnueabihf`, `brew install zig`,
 `cargo install cargo-zigbuild`.
@@ -71,6 +105,16 @@ trois échecs. Une mise à jour de Telmi OS par Telmi Sync écrase ces fichiers 
 `install-sd.sh`.
 
 Journal sur la console : `.tmp_update/logs/storyTeller-rs.log`.
+
+### Publier une version
+
+```sh
+scripts/make-release.sh 1.10.4   # → dist/release/*.zip et SHA256SUMS
+```
+
+Le script reprend les archives officielles de Telmi OS de la version indiquée et n'y remplace
+que `storyTeller` et `runtime.sh` (originaux gardés en `.telmi`). Le numéro de version vient de
+`crates/os/Cargo.toml`.
 
 ## Licence et origine
 
