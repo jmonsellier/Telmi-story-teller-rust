@@ -72,6 +72,12 @@ trois échecs. Une mise à jour de Telmi OS par Telmi Sync écrase ces fichiers 
 
 Journal sur la console : `.tmp_update/logs/storyTeller-rs.log`.
 
+## Licence et origine
+
+GPL-3.0, comme Telmi OS dont ce projet reprend la logique (`stories_reader.h`,
+`music_player.h`, `app_selector.h`, `storyTeller.c`) et les ressources graphiques.
+Telmi OS : © Franck Alary (DantSu) et contributeurs, <https://github.com/DantSu/Telmi-story-teller>.
+
 ## Limites connues
 
 - Prise casque de la Miyoo Mini Flip (GPIO 44/45) non gérée : la Mini Plus n'est pas concernée.
