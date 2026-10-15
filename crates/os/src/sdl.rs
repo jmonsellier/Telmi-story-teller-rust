@@ -109,9 +109,12 @@ impl Sdl {
             if SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0 {
                 return Err(format!("SDL_Init : {}", last_error()));
             }
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+            // OpenGL ES 2.0, comme Telmi pour le pilote mmiyoo ; absent sur macOS.
+            if cfg!(target_arch = "arm") {
+                SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+                SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+                SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+            }
             let mut sdl = Sdl {
                 window: ptr::null_mut(),
                 renderer: ptr::null_mut(),

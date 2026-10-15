@@ -39,6 +39,8 @@ pub enum Event {
 
 pub struct Input {
     device: Option<File>,
+    #[cfg(not(target_arch = "arm"))]
+    script: Option<crate::sim::Script>,
 }
 
 const EV_KEY: u16 = 1;
@@ -99,6 +101,7 @@ fn button_from_keycode(keycode: i32) -> Option<Button> {
 }
 
 impl Input {
+    #[cfg_attr(not(target_arch = "arm"), allow(dead_code))]
     pub fn open(path: &str) -> Input {
         use std::os::unix::fs::OpenOptionsExt;
         let device = std::fs::OpenOptions::new()
@@ -107,16 +110,26 @@ impl Input {
             .open(path)
             .map_err(|e| log!("entrée {path} indisponible : {e}"))
             .ok();
-        Input { device }
+        Input {
+            device,
+            #[cfg(not(target_arch = "arm"))]
+            script: None,
+        }
     }
 
     /// Simulateur : pas de périphérique, on lit le clavier SDL.
+    #[cfg(not(target_arch = "arm"))]
     pub fn desktop() -> Input {
-        Input { device: None }
+        Input { device: None, script: crate::sim::Script::from_env() }
     }
 
     /// Attend au plus `timeout_ms` et renvoie les événements reçus.
     pub fn wait(&mut self, sdl: &mut Sdl, timeout_ms: i32, events: &mut Vec<Event>) {
+        #[cfg(not(target_arch = "arm"))]
+        if let Some(script) = self.script.as_mut() {
+            sdl.wait_event(0);
+            return script.wait(timeout_ms, events);
+        }
         match self.device.as_mut() {
             Some(device) => read_device(device, timeout_ms, events),
             None => {

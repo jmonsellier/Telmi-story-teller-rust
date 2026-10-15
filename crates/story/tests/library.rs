@@ -3,8 +3,34 @@
 //! `TELMI_STORIES=~/.telmi/stories cargo test --release -p telmi-story -- --nocapture`
 //! Sans la variable, le test ne fait rien.
 
+use std::alloc::{GlobalAlloc, Layout, System};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
+
+/// Compte les octets alloués pour mesurer le pic pendant la lecture.
+struct Counting;
+
+static CURRENT: AtomicUsize = AtomicUsize::new(0);
+static PEAK: AtomicUsize = AtomicUsize::new(0);
+
+unsafe impl GlobalAlloc for Counting {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        let now = CURRENT.fetch_add(layout.size(), Ordering::Relaxed) + layout.size();
+        PEAK.fetch_max(now, Ordering::Relaxed);
+        // SAFETY: délégation directe à l'allocateur système.
+        unsafe { System.alloc(layout) }
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        CURRENT.fetch_sub(layout.size(), Ordering::Relaxed);
+        // SAFETY: délégation directe à l'allocateur système.
+        unsafe { System.dealloc(ptr, layout) }
+    }
+}
+
+#[global_allocator]
+static ALLOCATOR: Counting = Counting;
 
 use telmi_story::{load_story, Player, Step};
 
@@ -29,18 +55,24 @@ fn every_story_loads_with_bounded_memory() {
     for dir in story_dirs(&root) {
         let nodes = dir.join("nodes.json");
         let size = std::fs::metadata(&nodes).unwrap().len();
+        let base = CURRENT.load(Ordering::Relaxed);
+        PEAK.store(base, Ordering::Relaxed);
         let started = Instant::now();
         let story = load_story(&nodes).unwrap_or_else(|e| panic!("{}: {e}", dir.display()));
         let elapsed = started.elapsed();
         let heap = story.heap_bytes();
+        let retained = CURRENT.load(Ordering::Relaxed) - base;
+        let peak = PEAK.load(Ordering::Relaxed) - base;
         println!(
-            "{:40} {:6.1} Mo json → {:5.2} Mo en mémoire, {:6} étapes, {:4} ms",
+            "{:40} {:5.1} Mo json → gardé {:5.2} Mo, pic {:5.2} Mo, {:6} étapes, {:4} ms",
             dir.file_name().unwrap().to_string_lossy(),
             size as f64 / 1e6,
-            heap as f64 / 1e6,
+            retained as f64 / 1e6,
+            peak as f64 / 1e6,
             story.stage_count(),
             elapsed.as_millis()
         );
+        assert!(peak < 16_000_000, "{}: pic de {peak} octets", dir.display());
         assert!(heap < 12_000_000, "{}: {heap} octets", dir.display());
 
         let mut missing = 0;

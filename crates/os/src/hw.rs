@@ -16,21 +16,12 @@ pub struct Hardware {
     screen_on: bool,
     volume: i32,
     brightness: i32,
-    device_id: i32,
 }
 
 impl Hardware {
     pub fn detect() -> Hardware {
         let enabled = cfg!(target_arch = "arm") && Path::new("/dev/mi_ao").exists();
-        let device_id = std::fs::read_to_string("/tmp/deviceModel")
-            .ok()
-            .and_then(|s| s.trim().parse().ok())
-            .unwrap_or(0);
-        Hardware { enabled, screen_on: true, volume: 0, brightness: 0, device_id }
-    }
-
-    pub fn device_id(&self) -> i32 {
-        self.device_id
+        Hardware { enabled, screen_on: true, volume: 0, brightness: 0 }
     }
 
     pub fn screen_on(&self) -> bool {

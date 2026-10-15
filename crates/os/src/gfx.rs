@@ -282,10 +282,6 @@ impl ImageCache {
             }
         }
     }
-
-    pub fn forget_failures(&mut self) {
-        self.failures.clear();
-    }
 }
 
 #[cfg(test)]
