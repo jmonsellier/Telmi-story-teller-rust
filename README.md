@@ -1,4 +1,4 @@
-# MiyooKids — storyTeller en Rust
+# Telmi-story-teller-rust
 
 Remplaçant robuste du binaire `storyTeller` de [Telmi OS](https://github.com/DantSu/Telmi-story-teller)
 pour Miyoo Mini Plus. Il garde tout le reste de Telmi OS (démarrage, batterie, Telmi Sync, format
